@@ -1,8 +1,21 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-const empty = { name: '', shortDesc: '', fullDesc: '', basePrice: 1000, image: '', gallery: '', flowerType: 'mix', color: 'mix', category: 'bouquet', isActive: true };
+const empty = {
+  id: null,
+  name: '',
+  shortDesc: '',
+  fullDesc: '',
+  basePrice: 1000,
+  stockQty: 0,
+  image: '',
+  gallery: '',
+  flowerType: 'other',
+  color: 'mix',
+  category: 'flowers',
+  isActive: true
+};
 
 function parseGalleryInput(value) {
   return String(value || '')
@@ -11,9 +24,27 @@ function parseGalleryInput(value) {
     .filter(Boolean);
 }
 
+function normalizeGalleryForForm(rawGallery) {
+  if (Array.isArray(rawGallery)) return rawGallery.join('\n');
+  if (typeof rawGallery === 'string') {
+    try {
+      const parsed = JSON.parse(rawGallery);
+      if (Array.isArray(parsed)) return parsed.join('\n');
+    } catch {}
+    return rawGallery;
+  }
+  return '';
+}
+
+function normalizeCategory(value) {
+  return value === 'bouquet' || value === 'bouquets' ? 'bouquets' : 'flowers';
+}
+
 export default function AdminProductsPage() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(empty);
+  const mainFileRef = useRef(null);
+  const galleryFilesRef = useRef(null);
 
   async function fileToDataUrl(file) {
     const rawDataUrl = await new Promise((resolve, reject) => {
@@ -23,7 +54,6 @@ export default function AdminProductsPage() {
       reader.readAsDataURL(file);
     });
 
-    // Resize/compress on client to keep payloads manageable.
     const img = new Image();
     img.src = rawDataUrl;
     await new Promise((resolve, reject) => {
@@ -39,6 +69,12 @@ export default function AdminProductsPage() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL('image/jpeg', 0.72);
+  }
+
+  function resetForm() {
+    setForm(empty);
+    if (mainFileRef.current) mainFileRef.current.value = '';
+    if (galleryFilesRef.current) galleryFilesRef.current.value = '';
   }
 
   async function onMainImageFileChange(event) {
@@ -67,11 +103,22 @@ export default function AdminProductsPage() {
     }
     setItems(await res.json());
   }
+
   async function save(e) {
     e.preventDefault();
-    const payload = { ...form, gallery: parseGalleryInput(form.gallery) };
+    const payload = {
+      ...form,
+      stockQty: Math.max(Number(form.stockQty || 0), 0),
+      category: normalizeCategory(form.category),
+      flowerType: 'other',
+      gallery: parseGalleryInput(form.gallery)
+    };
     const method = form.id ? 'PATCH' : 'POST';
-    const res = await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch('/api/products', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     if (!res.ok) {
       let message = 'Не вдалося зберегти товар';
       try {
@@ -81,45 +128,85 @@ export default function AdminProductsPage() {
       alert(message + '. Спробуйте менше/легше фото або вставте URL.');
       return;
     }
-    setForm(empty); load();
+    resetForm();
+    load();
   }
-  async function remove(id) { await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); load(); }
-  useEffect(() => { load(); }, []);
+
+  async function remove(id) {
+    await fetch('/api/products', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if (form.id === id) resetForm();
+    load();
+  }
+
+  function edit(item) {
+    setForm({
+      ...empty,
+      ...item,
+      category: normalizeCategory(item.category),
+      stockQty: Number(item.stockQty || 0),
+      gallery: normalizeGalleryForForm(item.gallery)
+    });
+    if (mainFileRef.current) mainFileRef.current.value = '';
+    if (galleryFilesRef.current) galleryFilesRef.current.value = '';
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
 
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold">Товари</h1>
       <form className="card grid gap-2 p-3" onSubmit={save}>
-        <input className="field" placeholder="Назва" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <input className="field" placeholder="Назва" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input className="field" placeholder="Короткий опис" value={form.shortDesc} onChange={(e) => setForm({ ...form, shortDesc: e.target.value })} />
         <textarea className="field" placeholder="Повний опис" value={form.fullDesc} onChange={(e) => setForm({ ...form, fullDesc: e.target.value })} />
-        <input className="field" type="number" placeholder="Ціна" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value || 0) })} />
+
+        <div className="grid grid-cols-2 gap-2">
+          <input className="field" type="number" min="1" placeholder="Ціна за 1 квітку / одиницю" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value || 0) })} />
+          <input className="field" type="number" min="0" placeholder="В наявності (шт)" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: Number(e.target.value || 0) })} />
+        </div>
+
+        <select className="field" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+          <option value="flowers">Квіти</option>
+          <option value="bouquets">Букети</option>
+        </select>
+
         <input className="field" placeholder="Фото URL" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
         <label className="text-sm">
           Завантажити головне фото з галереї
-          <input className="field mt-1" type="file" accept="image/*" onChange={onMainImageFileChange} />
+          <input ref={mainFileRef} className="field mt-1" type="file" accept="image/*" onChange={onMainImageFileChange} />
         </label>
+
         <textarea className="field" rows={4} placeholder="Галерея: 1 фото = 1 рядок" value={form.gallery} onChange={(e) => setForm({ ...form, gallery: e.target.value })} />
         <label className="text-sm">
           Додати фото в галерею (можна кілька)
-          <input className="field mt-1" type="file" accept="image/*" multiple onChange={onGalleryFilesChange} />
+          <input ref={galleryFilesRef} className="field mt-1" type="file" accept="image/*" multiple onChange={onGalleryFilesChange} />
         </label>
+
         {form.image ? <img src={form.image} alt="preview" className="h-28 w-28 rounded-lg object-cover" /> : null}
-        <div className="grid grid-cols-3 gap-2">
-          <input className="field" placeholder="Категорія" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-          <input className="field" placeholder="Колір" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
-          <input className="field" placeholder="Тип квітів" value={form.flowerType} onChange={(e) => setForm({ ...form, flowerType: e.target.value })} />
-        </div>
+
         <label><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Активний</label>
-        <button className="btn-primary" type="submit">Зберегти товар</button>
+
+        <div className="flex gap-2">
+          <button className="btn-primary" type="submit">{form.id ? 'Оновити товар' : 'Зберегти товар'}</button>
+          <button className="btn-secondary" type="button" onClick={resetForm}>Очистити форму</button>
+        </div>
       </form>
+
       <div className="grid gap-2">
         {items.map((i) => (
           <div className="card p-3" key={i.id}>
             <p className="font-semibold">{i.name}</p>
             <p>{i.basePrice} грн</p>
+            <p>Наявність: {i.stockQty ?? 0} шт</p>
+            <p>Категорія: {normalizeCategory(i.category) === 'bouquets' ? 'Букети' : 'Квіти'}</p>
             <div className="mt-2 flex gap-2">
-              <button className="btn-secondary" onClick={() => setForm({ ...i, gallery: (i.gallery || []).join('\n') })}>Редагувати</button>
+              <button className="btn-secondary" onClick={() => edit(i)}>Редагувати</button>
               <button className="btn-secondary" onClick={() => remove(i.id)}>Видалити</button>
             </div>
           </div>

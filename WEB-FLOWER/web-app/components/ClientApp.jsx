@@ -1,27 +1,49 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from 'react';
+
+const MIN_ORDER_TOTAL = 700;
+
+function normalizeCategory(value) {
+  return value === 'bouquet' || value === 'bouquets' ? 'bouquets' : 'flowers';
+}
 
 export default function ClientApp({ initialProducts, settings }) {
   const [products] = useState(initialProducts);
   const [search, setSearch] = useState('');
-  const [flowerType, setFlowerType] = useState('all');
+  const [category, setCategory] = useState('all');
   const [color, setColor] = useState('all');
   const [maxPrice, setMaxPrice] = useState(5000);
   const [cart, setCart] = useState([]);
   const [stage, setStage] = useState('catalog');
   const [selected, setSelected] = useState(null);
-  const [checkout, setCheckout] = useState({ name: '', phone: '', orderType: 'delivery', city: '', street: '', building: '', apartment: '', comment: '', deliveryDate: '', deliveryTime: '', paymentMethod: 'liqpay' });
+  const [checkout, setCheckout] = useState({
+    name: '',
+    phone: '',
+    orderType: 'delivery',
+    city: '',
+    street: '',
+    building: '',
+    apartment: '',
+    comment: '',
+    deliveryDate: '',
+    deliveryTime: '',
+    paymentMethod: 'liqpay'
+  });
   const [statusText, setStatusText] = useState('');
 
-  const filtered = useMemo(() => products.filter((p) => {
-    if (!p.isActive) return false;
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (flowerType !== 'all' && p.flowerType !== flowerType) return false;
-    if (color !== 'all' && p.color !== color) return false;
-    if (p.basePrice > maxPrice) return false;
-    return true;
-  }), [products, search, flowerType, color, maxPrice]);
+  const filtered = useMemo(
+    () =>
+      products.filter((p) => {
+        if (!p.isActive) return false;
+        if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+        if (category !== 'all' && normalizeCategory(p.category) !== category) return false;
+        if (color !== 'all' && p.color !== color) return false;
+        if (p.basePrice > maxPrice) return false;
+        return true;
+      }),
+    [products, search, category, color, maxPrice]
+  );
 
   function addToCart(product, options) {
     const idx = cart.findIndex((i) => i.productId === product.id && JSON.stringify(i.options) === JSON.stringify(options));
@@ -49,20 +71,40 @@ export default function ClientApp({ initialProducts, settings }) {
 
   async function createOrder() {
     if (!cart.length) return alert('Кошик порожній');
-    if (!checkout.name || !checkout.phone || !checkout.deliveryDate || !checkout.deliveryTime) return alert('Заповніть обов\'язкові поля');
+    if (!checkout.name || !checkout.phone || !checkout.deliveryDate || !checkout.deliveryTime) return alert("Заповніть обов'язкові поля");
     if (checkout.orderType === 'delivery' && (!checkout.city || !checkout.street || !checkout.building)) return alert('Вкажіть адресу доставки');
 
-    const payload = { ...checkout, items: cart, subtotal, deliveryPrice, total, telegramUserId: window?.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || '' };
-    const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const payload = {
+      ...checkout,
+      items: cart,
+      subtotal,
+      deliveryPrice,
+      total,
+      telegramUserId: window?.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || ''
+    };
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     const data = await res.json();
     if (!res.ok) return alert(data.error || 'Помилка створення замовлення');
 
-    await fetch('/api/telegram/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data.order) });
+    await fetch('/api/telegram/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data.order)
+    });
 
     if (checkout.paymentMethod === 'liqpay') {
-      const payRes = await fetch('/api/liqpay/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderNo: data.order.orderNo, total: data.order.total }) });
+      const payRes = await fetch('/api/liqpay/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNo: data.order.orderNo, total: data.order.total })
+      });
       const pay = await payRes.json();
       if (!payRes.ok) return alert(pay.error || 'Помилка LiqPay');
+
       setStatusText('Переходимо до оплати LiqPay...');
       const form = document.createElement('form');
       form.method = 'POST';
@@ -92,7 +134,9 @@ export default function ClientApp({ initialProducts, settings }) {
             <div className="flex items-center justify-between" key={idx}>
               <div>
                 <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-neutral-500">{item.options.size}, {item.options.extras.join(', ') || 'без додаткового'}</p>
+                <p className="text-sm text-neutral-500">
+                  {item.options.flowerQty} шт, {item.options.extras.join(', ') || 'без додаткового'}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button className="btn-secondary" onClick={() => updateQty(idx, -1)}>-</button>
@@ -166,8 +210,18 @@ export default function ClientApp({ initialProducts, settings }) {
       <div className="card p-3 space-y-2">
         <input className="field" placeholder="Пошук по назві" value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="grid grid-cols-3 gap-2">
-          <select className="field" value={flowerType} onChange={(e) => setFlowerType(e.target.value)}><option value="all">Тип</option><option value="rose">Троянди</option><option value="tulip">Тюльпани</option><option value="mix">Мікс</option></select>
-          <select className="field" value={color} onChange={(e) => setColor(e.target.value)}><option value="all">Колір</option><option value="red">Червоні</option><option value="white">Білі</option><option value="pink">Рожеві</option><option value="mix">Мікс</option></select>
+          <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="all">Категорія</option>
+            <option value="flowers">Квіти</option>
+            <option value="bouquets">Букети</option>
+          </select>
+          <select className="field" value={color} onChange={(e) => setColor(e.target.value)}>
+            <option value="all">Колір</option>
+            <option value="red">Червоні</option>
+            <option value="white">Білі</option>
+            <option value="pink">Рожеві</option>
+            <option value="mix">Мікс</option>
+          </select>
           <input className="field" type="number" min="100" step="50" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value || 5000))} />
         </div>
       </div>
@@ -178,6 +232,7 @@ export default function ClientApp({ initialProducts, settings }) {
             <div className="p-2">
               <p className="font-semibold">{p.name}</p>
               <p className="text-sm text-neutral-600">{p.shortDesc}</p>
+              <p className="text-sm text-neutral-600">В наявності: {p.stockQty ?? 0} шт</p>
               <div className="mt-2 flex items-center justify-between">
                 <span className="font-semibold">{p.basePrice} грн</span>
                 <div className="flex gap-2">
@@ -196,15 +251,45 @@ export default function ClientApp({ initialProducts, settings }) {
 }
 
 function ProductDetails({ product, onBack, onAdd }) {
-  const [size, setSize] = useState('medium');
+  const [flowerQty, setFlowerQty] = useState(9);
   const [cardText, setCardText] = useState('');
   const [extras, setExtras] = useState([]);
-  const extrasMap = { card: 50, chocolate: 150, toy: 200 };
-  const sizeMap = { small: -100, medium: 0, large: 250 };
-  const finalPrice = Math.max(product.basePrice + (sizeMap[size] || 0) + extras.reduce((s, e) => s + (extrasMap[e] || 0), 0), 0);
+  const extrasMap = { card: 50, packaging: 120, ribbon: 40 };
   const gallery = Array.isArray(product.gallery) ? product.gallery : [];
+  const stockQty = Number(product.stockQty ?? 0);
 
-  function toggleExtra(key) { setExtras((prev) => prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]); }
+  const finalPrice = Math.max(product.basePrice * flowerQty + extras.reduce((s, e) => s + (extrasMap[e] || 0), 0), 0);
+
+  function toggleExtra(key) {
+    setExtras((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
+  }
+
+  function setTemplateQty(value) {
+    if (stockQty > 0) setFlowerQty(Math.min(value, stockQty));
+    else setFlowerQty(value);
+  }
+
+  function addCurrentProduct() {
+    if (stockQty <= 0) {
+      alert('Товар тимчасово відсутній');
+      return;
+    }
+    if (stockQty > 0 && flowerQty > stockQty) {
+      alert('Вибрана кількість перевищує наявність');
+      return;
+    }
+    if (finalPrice < MIN_ORDER_TOTAL) {
+      alert(`Мінімальна сума замовлення ${MIN_ORDER_TOTAL} грн`);
+      return;
+    }
+
+    onAdd(product, {
+      flowerQty,
+      extras,
+      cardText,
+      price: finalPrice
+    });
+  }
 
   return (
     <div className="app-shell space-y-3">
@@ -214,17 +299,38 @@ function ProductDetails({ product, onBack, onAdd }) {
         <div className="grid grid-cols-3 gap-2">{gallery.map((g, i) => <img key={i} src={g} alt="photo" className="h-20 w-full rounded-lg object-cover" />)}</div>
         <h2 className="text-xl font-semibold">{product.name}</h2>
         <p className="text-sm text-neutral-600">{product.fullDesc}</p>
+        <p className="text-sm text-neutral-600">В наявності: {stockQty} шт</p>
+
+        <p className="text-sm font-medium">Швидкий вибір кількості:</p>
         <div className="grid grid-cols-3 gap-2">
-          <button className={size === 'small' ? 'btn-primary' : 'btn-secondary'} onClick={() => setSize('small')}>Малий</button>
-          <button className={size === 'medium' ? 'btn-primary' : 'btn-secondary'} onClick={() => setSize('medium')}>Середній</button>
-          <button className={size === 'large' ? 'btn-primary' : 'btn-secondary'} onClick={() => setSize('large')}>Великий</button>
+          <button className="btn-secondary" onClick={() => setTemplateQty(9)}>Невеликий (9)</button>
+          <button className="btn-secondary" onClick={() => setTemplateQty(15)}>Середній (15)</button>
+          <button className="btn-secondary" onClick={() => setTemplateQty(25)}>Великий (25)</button>
         </div>
+
+        <label className="text-sm">
+          Кількість квітів
+          <input
+            className="field mt-1"
+            type="number"
+            min={1}
+            max={stockQty > 0 ? stockQty : undefined}
+            value={flowerQty}
+            onChange={(e) => {
+              const next = Math.max(Number(e.target.value || 1), 1);
+              setFlowerQty(stockQty > 0 ? Math.min(next, stockQty) : next);
+            }}
+          />
+        </label>
+
+        <label><input type="checkbox" onChange={() => toggleExtra('packaging')} /> Упакування (+120 грн)</label>
+        <label><input type="checkbox" onChange={() => toggleExtra('ribbon')} /> Стрічка (+40 грн)</label>
         <label><input type="checkbox" onChange={() => toggleExtra('card')} /> Листівка (+50 грн)</label>
-        <label><input type="checkbox" onChange={() => toggleExtra('chocolate')} /> Шоколад (+150 грн)</label>
-        <label><input type="checkbox" onChange={() => toggleExtra('toy')} /> Іграшка (+200 грн)</label>
+
         <textarea className="field" placeholder="Текст для листівки" value={cardText} onChange={(e) => setCardText(e.target.value)} />
         <p className="font-semibold">Ціна: {finalPrice} грн</p>
-        <button className="btn-primary" onClick={() => onAdd(product, { size, extras, cardText, price: finalPrice })}>Додати в кошик</button>
+        <p className="text-sm text-neutral-600">Мінімальна сума замовлення: {MIN_ORDER_TOTAL} грн</p>
+        <button className="btn-primary" onClick={addCurrentProduct}>Додати в кошик</button>
       </div>
     </div>
   );

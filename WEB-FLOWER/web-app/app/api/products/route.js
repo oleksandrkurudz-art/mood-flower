@@ -40,11 +40,12 @@ export async function POST(request) {
       shortDesc: body.shortDesc || '',
       fullDesc: body.fullDesc || '',
       basePrice: Number(body.basePrice || 0),
+      stockQty: Math.max(Number(body.stockQty || 0), 0),
       image: body.image || '',
       gallery: JSON.stringify(body.gallery || []),
-      flowerType: body.flowerType || 'mix',
+      flowerType: body.flowerType || 'other',
       color: body.color || 'mix',
-      category: body.category || 'bouquet',
+      category: body.category || 'flowers',
       isActive: Boolean(body.isActive)
     }
   });
@@ -61,11 +62,12 @@ export async function PATCH(request) {
       shortDesc: body.shortDesc,
       fullDesc: body.fullDesc,
       basePrice: Number(body.basePrice),
+      stockQty: Math.max(Number(body.stockQty || 0), 0),
       image: body.image,
       gallery: JSON.stringify(body.gallery || []),
-      flowerType: body.flowerType,
+      flowerType: body.flowerType || 'other',
       color: body.color,
-      category: body.category,
+      category: body.category || 'flowers',
       isActive: Boolean(body.isActive)
     }
   });
