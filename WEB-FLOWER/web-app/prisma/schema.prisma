@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  shortDesc   String
+  fullDesc    String
+  basePrice   Int
+  image       String
+  gallery     String
+  flowerType  String
+  color       String
+  category    String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  orderNo         String   @unique
+  telegramUserId  String?
+  customerName    String
+  phone           String
+  orderType       String
+  city            String?
+  street          String?
+  building        String?
+  apartment       String?
+  comment         String?
+  deliveryDate    String
+  deliveryTime    String
+  paymentMethod   String
+  paymentStatus   String   @default("new")
+  status          String   @default("new")
+  itemsJson       String
+  subtotal        Int
+  deliveryPrice   Int      @default(0)
+  total           Int
+  cardText        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Setting {
+  id             Int    @id @default(1)
+  shopPhone      String
+  telegramLink   String
+  shopAddress    String
+  deliveryPrice  Int    @default(100)
+}
