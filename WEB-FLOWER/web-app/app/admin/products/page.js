@@ -31,14 +31,14 @@ export default function AdminProductsPage() {
       img.onerror = reject;
     });
 
-    const maxWidth = 1400;
+    const maxWidth = 900;
     const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(img.width * ratio);
     canvas.height = Math.round(img.height * ratio);
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', 0.82);
+    return canvas.toDataURL('image/jpeg', 0.72);
   }
 
   async function onMainImageFileChange(event) {
@@ -71,7 +71,16 @@ export default function AdminProductsPage() {
     e.preventDefault();
     const payload = { ...form, gallery: parseGalleryInput(form.gallery) };
     const method = form.id ? 'PATCH' : 'POST';
-    await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch('/api/products', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (!res.ok) {
+      let message = 'Не вдалося зберегти товар';
+      try {
+        const err = await res.json();
+        if (err?.error) message += `: ${err.error}`;
+      } catch {}
+      alert(message + '. Спробуйте менше/легше фото або вставте URL.');
+      return;
+    }
     setForm(empty); load();
   }
   async function remove(id) { await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); load(); }
