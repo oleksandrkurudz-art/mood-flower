@@ -2,8 +2,23 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const setting = await prisma.setting.findUnique({ where: { id: 1 } });
-  return NextResponse.json(setting);
+  try {
+    const setting = await prisma.setting.upsert({
+      where: { id: 1 },
+      create: {
+        id: 1,
+        shopPhone: '',
+        telegramLink: '',
+        shopAddress: '',
+        deliveryPrice: 100
+      },
+      update: {}
+    });
+    return NextResponse.json(setting);
+  } catch (error) {
+    console.error('GET /api/settings failed', error);
+    return NextResponse.json({ error: 'settings_fetch_failed' }, { status: 500 });
+  }
 }
 
 export async function PATCH(request) {

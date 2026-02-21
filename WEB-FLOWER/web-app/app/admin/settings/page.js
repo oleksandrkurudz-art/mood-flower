@@ -2,9 +2,23 @@
 
 import { useEffect, useState } from 'react';
 
+const defaultForm = { shopPhone: '', telegramLink: '', shopAddress: '', deliveryPrice: 100 };
+
 export default function AdminSettingsPage() {
-  const [form, setForm] = useState({ shopPhone: '', telegramLink: '', shopAddress: '', deliveryPrice: 100 });
-  async function load() { const res = await fetch('/api/settings'); setForm(await res.json()); }
+  const [form, setForm] = useState(defaultForm);
+  async function load() {
+    const res = await fetch('/api/settings', { cache: 'no-store' });
+    if (!res.ok) {
+      setForm(defaultForm);
+      alert('Не вдалося завантажити налаштування');
+      return;
+    }
+    const data = await res.json();
+    setForm({
+      ...defaultForm,
+      ...(data || {})
+    });
+  }
   async function save(e) {
     e.preventDefault();
     await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
