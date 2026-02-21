@@ -8,7 +8,7 @@ export default function AdminProductsPage() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(empty);
   async function load() {
-    const res = await fetch('/api/products');
+    const res = await fetch('/api/products?includeInactive=1', { cache: 'no-store' });
     if (!res.ok) {
       setItems([]);
       alert('Не вдалося завантажити товари');

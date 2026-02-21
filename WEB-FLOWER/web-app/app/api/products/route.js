@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseJsonSafe } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -9,9 +12,11 @@ export async function GET(request) {
     const flowerType = searchParams.get('flowerType') || '';
     const color = searchParams.get('color') || '';
     const maxPrice = Number(searchParams.get('maxPrice') || 100000);
+    const includeInactive = searchParams.get('includeInactive') === '1';
 
     const products = await prisma.product.findMany({
       where: {
+        ...(includeInactive ? {} : { isActive: true }),
         name: q ? { contains: q } : undefined,
         ...(flowerType ? { flowerType } : {}),
         ...(color ? { color } : {}),
