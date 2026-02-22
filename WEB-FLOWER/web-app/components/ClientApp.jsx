@@ -52,7 +52,7 @@ export default function ClientApp({ initialProducts, settings }) {
       next[idx].qty += 1;
       setCart(next);
     } else {
-      setCart([...cart, { productId: product.id, name: product.name, qty: 1, options, price: options.price }]);
+      setCart([...cart, { productId: product.id, name: product.name, image: product.image, qty: 1, options, price: options.price }]);
     }
     setStage('catalog');
     setSelected(null);
@@ -121,7 +121,7 @@ export default function ClientApp({ initialProducts, settings }) {
   }
 
   if (selected) {
-    return <ProductDetails product={selected} onBack={() => setSelected(null)} onAdd={addToCart} />;
+    return <ProductDetails product={selected} onBack={() => setSelected(null)} onAdd={addToCart} onGoCart={() => { setSelected(null); setStage('cart'); }} />;
   }
 
   if (stage === 'cart') {
@@ -138,14 +138,14 @@ export default function ClientApp({ initialProducts, settings }) {
             return (
               <div className="rounded-xl border border-line p-3" key={idx}>
                 <div className="space-y-1">
+                  <img src={item.image} alt={item.name} className="h-14 w-14 rounded-lg object-cover" />
                   <p className="font-medium">{item.name}</p>
                   <p className="text-sm text-neutral-500">{detailsText}</p>
                   <p className="pt-1 text-2xl font-bold leading-none">{itemTotal} грн</p>
                 </div>
                 <div className="mt-3 inline-flex items-center gap-2">
-                  <button className="h-8 w-8 rounded-lg border border-line bg-white text-sm font-semibold" onClick={() => updateQty(idx, -1)}>-</button>
+                  <button className="h-8 w-8 rounded-lg border border-line bg-white text-sm font-semibold" onClick={() => updateQty(idx, -item.qty)}>-</button>
                   <span className="min-w-5 text-center text-sm font-medium">{item.qty}</span>
-                  <button className="h-8 w-8 rounded-lg border border-line bg-white text-sm font-semibold" onClick={() => updateQty(idx, 1)}>+</button>
                 </div>
               </div>
             );
@@ -203,15 +203,17 @@ export default function ClientApp({ initialProducts, settings }) {
         </div>
         <div className="card p-3 space-y-2">
           <p className="text-sm font-semibold">Дата і час отримання</p>
-          <div className="grid grid-cols-2 gap-2">
-            <input className="field" type="date" value={checkout.deliveryDate} onChange={(e) => setCheckout({ ...checkout, deliveryDate: e.target.value })} />
-            <input className="field" type="time" value={checkout.deliveryTime} onChange={(e) => setCheckout({ ...checkout, deliveryTime: e.target.value })} />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <input className="field min-w-0 px-2 py-1.5 text-sm" type="date" value={checkout.deliveryDate} onChange={(e) => setCheckout({ ...checkout, deliveryDate: e.target.value })} />
+            <input className="field min-w-0 px-2 py-1.5 text-sm" type="time" value={checkout.deliveryTime} onChange={(e) => setCheckout({ ...checkout, deliveryTime: e.target.value })} />
           </div>
         </div>
         <div className="card p-3 space-y-2">
           <p className="text-sm font-semibold">Оплата</p>
-          <button className={checkout.paymentMethod === 'liqpay' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, paymentMethod: 'liqpay' })}>Оплатити карткою</button>
-          <button className={checkout.paymentMethod === 'cod' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, paymentMethod: 'cod' })}>Оплата при отриманні</button>
+          <div className="grid grid-cols-2 gap-2">
+            <button className={checkout.paymentMethod === 'liqpay' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, paymentMethod: 'liqpay' })}>Оплатити карткою</button>
+            <button className={checkout.paymentMethod === 'cod' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, paymentMethod: 'cod' })}>Оплата при отриманні</button>
+          </div>
         </div>
         <div className="card p-3">
           <p className="text-sm text-neutral-600">До оплати</p>
@@ -274,7 +276,7 @@ export default function ClientApp({ initialProducts, settings }) {
   );
 }
 
-function ProductDetails({ product, onBack, onAdd }) {
+function ProductDetails({ product, onBack, onAdd, onGoCart }) {
   const isBouquet = normalizeCategory(product.category) === 'bouquets';
   const [flowerQtyInput, setFlowerQtyInput] = useState(isBouquet ? '1' : '9');
   const [cardText, setCardText] = useState('');
@@ -369,7 +371,10 @@ function ProductDetails({ product, onBack, onAdd }) {
         )}
         <p className="text-3xl font-bold leading-none">{finalPrice} грн</p>
         <p className="text-sm text-neutral-600">Мінімальне замовлення — {MIN_ORDER_TOTAL} грн</p>
-        <button className="btn-primary" onClick={addCurrentProduct}>Додати в кошик</button>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn-primary" onClick={addCurrentProduct}>Додати в кошик</button>
+          <button className="btn-secondary" onClick={onGoCart}>Перейти в кошик</button>
+        </div>
       </div>
     </div>
   );
