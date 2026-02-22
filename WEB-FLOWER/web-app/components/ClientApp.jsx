@@ -221,15 +221,15 @@ export default function ClientApp({ initialProducts, settings }) {
           <input className="field" type="number" min="100" step="50" value={maxPriceInput} onChange={(e) => setMaxPriceInput(e.target.value)} />
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
         {filtered.map((p) => (
-          <div className="card p-2" key={p.id}>
-            <img src={p.image} alt={p.name} className="h-44 w-full rounded-xl object-cover" />
-            <div className="p-2">
+          <div className="card p-2 h-full flex flex-col" key={p.id}>
+            <img src={p.image} alt={p.name} className="aspect-square w-full rounded-xl object-cover" />
+            <div className="p-2 flex h-full flex-col">
               <p className="font-semibold">{p.name}</p>
-              <p className="text-sm text-neutral-600">{p.shortDesc}</p>
+              <p className="text-sm text-neutral-600 min-h-[40px]">{p.shortDesc}</p>
               <p className="text-sm text-neutral-600">В наявності: {p.stockQty ?? 0}{normalizeCategory(p.category) === 'bouquets' ? '' : ' шт'}</p>
-              <div className="mt-2 flex items-center justify-between">
+              <div className="mt-auto pt-2 flex items-center justify-between">
                 <span className="font-semibold">{p.basePrice} грн</span>
                 <div className="flex gap-2">
                   <button className="btn-secondary" onClick={() => setSelected(p)}>Детальніше</button>
@@ -258,10 +258,19 @@ function ProductDetails({ product, onBack, onAdd }) {
   const flowerQty = isBouquet ? 1 : parsedFlowerQty;
   const hasValidFlowerQty = isBouquet || (flowerQtyInput !== '' && Number.isFinite(parsedFlowerQty) && parsedFlowerQty >= 1);
 
-  const finalPrice = Math.max(product.basePrice * flowerQty + extras.reduce((s, e) => s + (extrasMap[e] || 0), 0), 0);
+  const effectiveExtras = isBouquet ? extras.filter((e) => e === 'card') : extras;
+  const finalPrice = Math.max(product.basePrice * flowerQty + effectiveExtras.reduce((s, e) => s + (extrasMap[e] || 0), 0), 0);
 
   function toggleExtra(key) {
-    setExtras((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
+    setExtras((prev) => {
+      if (key === 'packaging' || key === 'ribbon') {
+        const other = key === 'packaging' ? 'ribbon' : 'packaging';
+        const hasCurrent = prev.includes(key);
+        const withoutBoth = prev.filter((x) => x !== key && x !== other);
+        return hasCurrent ? withoutBoth : [...withoutBoth, key];
+      }
+      return prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key];
+    });
   }
 
   function addCurrentProduct() {
@@ -284,7 +293,7 @@ function ProductDetails({ product, onBack, onAdd }) {
 
     onAdd(product, {
       flowerQty,
-      extras,
+      extras: effectiveExtras,
       cardText,
       price: finalPrice
     });
@@ -314,9 +323,13 @@ function ProductDetails({ product, onBack, onAdd }) {
           </label>
         )}
 
-        <label><input type="checkbox" onChange={() => toggleExtra('packaging')} /> Упакування (+120 грн)</label>
-        <label><input type="checkbox" onChange={() => toggleExtra('ribbon')} /> Стрічка (+40 грн)</label>
-        <label><input type="checkbox" onChange={() => toggleExtra('card')} /> Листівка (+50 грн)</label>
+        {!isBouquet && (
+          <div className="grid grid-cols-2 gap-2">
+            <label><input type="checkbox" checked={effectiveExtras.includes('packaging')} onChange={() => toggleExtra('packaging')} /> Упакування (+120 грн)</label>
+            <label><input type="checkbox" checked={effectiveExtras.includes('ribbon')} onChange={() => toggleExtra('ribbon')} /> Стрічка (+40 грн)</label>
+          </div>
+        )}
+        <label><input type="checkbox" checked={effectiveExtras.includes('card')} onChange={() => toggleExtra('card')} /> Листівка (+50 грн)</label>
 
         <textarea className="field" placeholder="Текст для листівки" value={cardText} onChange={(e) => setCardText(e.target.value)} />
         <p className="font-semibold">Ціна: {finalPrice} грн</p>
