@@ -228,10 +228,10 @@ export default function ClientApp({ initialProducts, settings }) {
             <div className="p-2 flex h-full flex-col">
               <p className="font-semibold">{p.name}</p>
               <p className="text-sm text-neutral-600 min-h-[40px]">{p.shortDesc}</p>
-              <p className="text-sm text-neutral-600">В наявності: {p.stockQty ?? 0}{normalizeCategory(p.category) === 'bouquets' ? '' : ' шт'}</p>
-              <div className="mt-auto pt-3 space-y-2">
-                <span className="block text-base font-semibold">{p.basePrice} грн</span>
-                <button className="btn-primary w-full" onClick={() => setSelected(p)}>Замовити</button>
+              <p className="text-sm text-neutral-600">Є в наявності</p>
+              <div className="mt-auto pt-4 space-y-2">
+                <span className="block text-xl font-bold leading-none">{p.basePrice} грн</span>
+                <button className="btn-primary w-full rounded-2xl py-3.5" onClick={() => setSelected(p)}>Замовити</button>
               </div>
             </div>
           </div>
