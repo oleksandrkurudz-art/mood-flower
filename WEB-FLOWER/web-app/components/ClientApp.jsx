@@ -226,10 +226,10 @@ export default function ClientApp({ initialProducts, settings }) {
           <div className="card p-2 h-full flex flex-col" key={p.id}>
             <img src={p.image} alt={p.name} className="aspect-square w-full rounded-xl object-cover" />
             <div className="p-2 flex h-full flex-col">
-              <p className="font-semibold">{p.name}</p>
+              <p className="min-h-[48px] text-[15px] font-semibold leading-6">{p.name}</p>
               <p className="text-sm text-neutral-600 min-h-[40px]">{p.shortDesc}</p>
-              <p className="text-sm text-neutral-600">Є в наявності</p>
-              <div className="mt-auto pt-4 space-y-2">
+              <p className="text-sm text-neutral-700">✓ В наявності</p>
+              <div className="mt-2 space-y-2">
                 <span className="block text-xl font-bold leading-none">{p.basePrice} грн</span>
                 <button className="btn-primary w-full rounded-2xl py-3.5" onClick={() => setSelected(p)}>Замовити</button>
               </div>
