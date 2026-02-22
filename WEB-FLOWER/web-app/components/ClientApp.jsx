@@ -228,10 +228,13 @@ export default function ClientApp({ initialProducts, settings }) {
             <div className="p-2 flex h-full flex-col">
               <p className="min-h-[48px] text-[15px] font-semibold leading-6">{p.name}</p>
               <p className="text-sm text-neutral-600 min-h-[40px]">{p.shortDesc}</p>
-              <p className="text-sm text-neutral-700">✓ В наявності</p>
+              <div className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>В наявності</span>
+              </div>
               <div className="mt-2 space-y-2">
                 <span className="block text-xl font-bold leading-none">{p.basePrice} грн</span>
-                <button className="btn-primary w-full rounded-2xl py-3.5" onClick={() => setSelected(p)}>Замовити</button>
+                <button className="btn-primary w-full rounded-2xl px-4 py-2.5 text-sm" onClick={() => setSelected(p)}>Замовити</button>
               </div>
             </div>
           </div>
