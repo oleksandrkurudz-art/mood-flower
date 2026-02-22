@@ -25,8 +25,7 @@ export default function ClientApp({ initialProducts, settings }) {
     building: '',
     apartment: '',
     comment: '',
-    deliveryDate: '',
-    deliveryTime: '',
+    deliveryDateTime: '',
     paymentMethod: 'liqpay'
   });
   const [statusText, setStatusText] = useState('');
@@ -66,16 +65,20 @@ export default function ClientApp({ initialProducts, settings }) {
   }
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const deliveryPrice = checkout.orderType === 'delivery' ? Number(settings.deliveryPrice || 100) : 0;
+  const orderType = checkout.orderType === 'pickup' ? 'pickup' : 'delivery';
+  const deliveryPrice = orderType === 'delivery' ? Number(settings.deliveryPrice || 100) : 0;
   const total = subtotal + deliveryPrice;
 
   async function createOrder() {
     if (!cart.length) return alert('Кошик порожній');
-    if (!checkout.name || !checkout.phone || !checkout.deliveryDate || !checkout.deliveryTime) return alert("Заповніть обов'язкові поля");
-    if (checkout.orderType === 'delivery' && (!checkout.city || !checkout.street || !checkout.building)) return alert('Вкажіть адресу доставки');
+    if (!checkout.name || !checkout.phone || !checkout.deliveryDateTime) return alert("Заповніть обов'язкові поля");
+    if (orderType === 'delivery' && (!checkout.city || !checkout.street || !checkout.building)) return alert('Вкажіть адресу доставки');
 
     const payload = {
       ...checkout,
+      orderType,
+      deliveryDate: checkout.deliveryDateTime,
+      deliveryTime: checkout.deliveryDateTime,
       items: cart,
       subtotal,
       deliveryPrice,
@@ -137,15 +140,17 @@ export default function ClientApp({ initialProducts, settings }) {
             const itemTotal = item.price * item.qty;
             return (
               <div className="rounded-xl border border-line p-3" key={idx}>
-                <div className="space-y-1">
-                  <img src={item.image} alt={item.name} className="h-14 w-14 rounded-lg object-cover" />
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-neutral-500">{detailsText}</p>
-                  <p className="pt-1 text-2xl font-bold leading-none">{itemTotal} грн</p>
-                </div>
-                <div className="mt-3 inline-flex items-center gap-2">
-                  <button className="h-8 w-8 rounded-lg border border-line bg-white text-sm font-semibold" onClick={() => updateQty(idx, -item.qty)}>-</button>
-                  <span className="min-w-5 text-center text-sm font-medium">{item.qty}</span>
+                <div className="flex items-start gap-3">
+                  <img src={item.image} alt={item.name} className="h-16 w-16 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-neutral-500">{detailsText}</p>
+                    <p className="pt-1 text-2xl font-bold leading-none">{itemTotal} грн</p>
+                  </div>
+                  <div className="inline-flex items-center gap-2">
+                    <button className="h-8 w-8 rounded-lg border border-line bg-white text-sm font-semibold" onClick={() => updateQty(idx, -item.qty)}>-</button>
+                    <span className="min-w-5 text-center text-sm font-medium">{item.qty}</span>
+                  </div>
                 </div>
               </div>
             );
@@ -185,10 +190,10 @@ export default function ClientApp({ initialProducts, settings }) {
         <div className="card p-3 space-y-2">
           <p className="text-sm font-semibold">Спосіб отримання</p>
           <div className="grid grid-cols-2 gap-2">
-            <button className={checkout.orderType === 'pickup' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, orderType: 'pickup' })}>Самовивіз</button>
-            <button className={checkout.orderType === 'delivery' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, orderType: 'delivery' })}>Доставка</button>
+            <button className={orderType === 'pickup' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, orderType: 'pickup' })}>Самовивіз</button>
+            <button className={orderType === 'delivery' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, orderType: 'delivery' })}>Доставка</button>
           </div>
-          {checkout.orderType === 'delivery' && (
+          {orderType === 'delivery' && (
             <>
               <p className="pt-1 text-sm font-semibold">Адреса доставки</p>
               <input className="field" placeholder="Місто" value={checkout.city} onChange={(e) => setCheckout({ ...checkout, city: e.target.value })} />
@@ -203,10 +208,7 @@ export default function ClientApp({ initialProducts, settings }) {
         </div>
         <div className="card p-3 space-y-2">
           <p className="text-sm font-semibold">Дата і час отримання</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <input className="field min-w-0 px-2 py-1.5 text-sm" type="date" value={checkout.deliveryDate} onChange={(e) => setCheckout({ ...checkout, deliveryDate: e.target.value })} />
-            <input className="field min-w-0 px-2 py-1.5 text-sm" type="time" value={checkout.deliveryTime} onChange={(e) => setCheckout({ ...checkout, deliveryTime: e.target.value })} />
-          </div>
+          <input className="field min-w-0 px-2 py-1.5 text-sm" type="text" placeholder="Наприклад: завтра 18:30" value={checkout.deliveryDateTime} onChange={(e) => setCheckout({ ...checkout, deliveryDateTime: e.target.value })} />
         </div>
         <div className="card p-3 space-y-2">
           <p className="text-sm font-semibold">Оплата</p>
