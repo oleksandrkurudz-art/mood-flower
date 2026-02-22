@@ -307,11 +307,13 @@ function ProductDetails({ product, onBack, onAdd }) {
         <div className="grid grid-cols-3 gap-2">{gallery.map((g, i) => <img key={i} src={g} alt="photo" className="h-20 w-full rounded-lg object-cover" />)}</div>
         <h2 className="text-xl font-semibold">{product.name}</h2>
         <p className="text-sm text-neutral-600">{product.fullDesc}</p>
-        <p className="text-sm text-neutral-600">В наявності: {stockQty}{isBouquet ? '' : ' шт'}</p>
+        <div className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+          ● В наявності ({stockQty}{isBouquet ? '' : ' шт'})
+        </div>
 
         {!isBouquet && (
           <label className="text-sm">
-            Кількість квітів
+            Кількість
             <input
               className="field mt-1"
               type="number"
@@ -323,17 +325,22 @@ function ProductDetails({ product, onBack, onAdd }) {
           </label>
         )}
 
-        {!isBouquet && (
-          <div className="grid grid-cols-2 gap-2">
-            <label><input type="checkbox" checked={effectiveExtras.includes('packaging')} onChange={() => toggleExtra('packaging')} /> Упакування (+120 грн)</label>
-            <label><input type="checkbox" checked={effectiveExtras.includes('ribbon')} onChange={() => toggleExtra('ribbon')} /> Стрічка (+40 грн)</label>
-          </div>
-        )}
-        <label><input type="checkbox" checked={effectiveExtras.includes('card')} onChange={() => toggleExtra('card')} /> Листівка (+50 грн)</label>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Додатково:</p>
+          {!isBouquet && (
+            <>
+              <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('packaging')} onChange={() => toggleExtra('packaging')} /> Упакування +120 грн</label>
+              <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('ribbon')} onChange={() => toggleExtra('ribbon')} /> Стрічка +40 грн</label>
+            </>
+          )}
+          <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('card')} onChange={() => toggleExtra('card')} /> Листівка +50 грн</label>
+        </div>
 
-        <textarea className="field" placeholder="Текст для листівки" value={cardText} onChange={(e) => setCardText(e.target.value)} />
-        <p className="font-semibold">Ціна: {finalPrice} грн</p>
-        <p className="text-sm text-neutral-600">Мінімальна сума замовлення: {MIN_ORDER_TOTAL} грн</p>
+        {effectiveExtras.includes('card') && (
+          <textarea className="field" placeholder="Текст для листівки" value={cardText} onChange={(e) => setCardText(e.target.value)} />
+        )}
+        <p className="text-3xl font-bold leading-none">{finalPrice} грн</p>
+        <p className="text-sm text-neutral-600">Мінімальне замовлення — {MIN_ORDER_TOTAL} грн</p>
         <button className="btn-primary" onClick={addCurrentProduct}>Додати в кошик</button>
       </div>
     </div>
