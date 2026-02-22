@@ -7,7 +7,7 @@ export const revalidate = 0;
 
 export default async function HomePage() {
   const [products, settings] = await Promise.all([
-    prisma.product.findMany({ where: { isActive: true }, orderBy: { createdAt: 'desc' } }),
+    prisma.product.findMany({ where: { isActive: true, stockQty: { gt: 0 } }, orderBy: { createdAt: 'desc' } }),
     prisma.setting.findUnique({ where: { id: 1 } })
   ]);
   const normalized = products.map((p) => ({ ...p, gallery: parseJsonSafe(p.gallery, []) }));

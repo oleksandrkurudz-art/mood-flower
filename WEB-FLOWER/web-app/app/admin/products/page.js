@@ -7,8 +7,8 @@ const empty = {
   name: '',
   shortDesc: '',
   fullDesc: '',
-  basePrice: 1000,
-  stockQty: 0,
+  basePrice: '1000',
+  stockQty: '0',
   image: '',
   gallery: '',
   flowerType: 'other',
@@ -45,6 +45,7 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(empty);
   const mainFileRef = useRef(null);
   const galleryFilesRef = useRef(null);
+  const isBouquet = normalizeCategory(form.category) === 'bouquets';
 
   async function fileToDataUrl(file) {
     const rawDataUrl = await new Promise((resolve, reject) => {
@@ -108,7 +109,7 @@ export default function AdminProductsPage() {
     e.preventDefault();
     const payload = {
       ...form,
-      stockQty: Math.max(Number(form.stockQty || 0), 0),
+      stockQty: isBouquet ? 1 : Math.max(Number(form.stockQty || 0), 0),
       category: normalizeCategory(form.category),
       flowerType: 'other',
       gallery: parseGalleryInput(form.gallery)
@@ -147,7 +148,8 @@ export default function AdminProductsPage() {
       ...empty,
       ...item,
       category: normalizeCategory(item.category),
-      stockQty: Number(item.stockQty || 0),
+      basePrice: String(item.basePrice ?? ''),
+      stockQty: String(item.stockQty ?? 0),
       gallery: normalizeGalleryForForm(item.gallery)
     });
     if (mainFileRef.current) mainFileRef.current.value = '';
@@ -167,11 +169,15 @@ export default function AdminProductsPage() {
         <textarea className="field" placeholder="Повний опис" value={form.fullDesc} onChange={(e) => setForm({ ...form, fullDesc: e.target.value })} />
 
         <div className="grid grid-cols-2 gap-2">
-          <input className="field" type="number" min="1" placeholder="Ціна за 1 квітку / одиницю" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value || 0) })} />
-          <input className="field" type="number" min="0" placeholder="В наявності (шт)" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: Number(e.target.value || 0) })} />
+          <input className="field" type="number" min="1" placeholder="Ціна за 1 квітку / одиницю" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: e.target.value })} />
+          {!isBouquet ? (
+            <input className="field" type="number" min="0" placeholder="В наявності (шт)" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: e.target.value })} />
+          ) : (
+            <div className="field flex items-center text-sm text-neutral-600">Для букетів кількість фіксована: 1</div>
+          )}
         </div>
 
-        <select className="field" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+        <select className="field" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, stockQty: e.target.value === 'bouquets' ? 1 : form.stockQty })}>
           <option value="flowers">Квіти</option>
           <option value="bouquets">Букети</option>
         </select>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from 'react';
 
@@ -12,8 +12,7 @@ export default function ClientApp({ initialProducts, settings }) {
   const [products] = useState(initialProducts);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
-  const [color, setColor] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(5000);
+  const [maxPriceInput, setMaxPriceInput] = useState('5000');
   const [cart, setCart] = useState([]);
   const [stage, setStage] = useState('catalog');
   const [selected, setSelected] = useState(null);
@@ -36,13 +35,14 @@ export default function ClientApp({ initialProducts, settings }) {
     () =>
       products.filter((p) => {
         if (!p.isActive) return false;
+        if (Number(p.stockQty ?? 0) <= 0) return false;
         if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
         if (category !== 'all' && normalizeCategory(p.category) !== category) return false;
-        if (color !== 'all' && p.color !== color) return false;
-        if (p.basePrice > maxPrice) return false;
+        const maxPrice = Number(maxPriceInput);
+        if (maxPriceInput !== '' && Number.isFinite(maxPrice) && p.basePrice > maxPrice) return false;
         return true;
       }),
-    [products, search, category, color, maxPrice]
+    [products, search, category, maxPriceInput]
   );
 
   function addToCart(product, options) {
@@ -130,21 +130,24 @@ export default function ClientApp({ initialProducts, settings }) {
         <h1 className="text-2xl font-semibold">Кошик</h1>
         <div className="card p-3 space-y-2">
           {cart.length === 0 && <p>Кошик порожній</p>}
-          {cart.map((item, idx) => (
-            <div className="flex items-center justify-between" key={idx}>
-              <div>
-                <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-neutral-500">
-                  {item.options.flowerQty} шт, {item.options.extras.join(', ') || 'без додаткового'}
-                </p>
+          {cart.map((item, idx) => {
+            const productCategory = normalizeCategory(products.find((p) => p.id === item.productId)?.category);
+            const extrasText = item.options.extras.join(', ') || 'без додаткового';
+            const detailsText = productCategory === 'bouquets' ? extrasText : `${item.options.flowerQty} шт, ${extrasText}`;
+            return (
+              <div className="flex items-center justify-between" key={idx}>
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-neutral-500">{detailsText}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="btn-secondary" onClick={() => updateQty(idx, -1)}>-</button>
+                  <span>{item.qty}</span>
+                  <button className="btn-secondary" onClick={() => updateQty(idx, 1)}>+</button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="btn-secondary" onClick={() => updateQty(idx, -1)}>-</button>
-                <span>{item.qty}</span>
-                <button className="btn-secondary" onClick={() => updateQty(idx, 1)}>+</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <p>Сума товарів: {subtotal} грн</p>
           <p>Доставка: {deliveryPrice} грн</p>
           <p className="font-semibold">Загальна сума: {total} грн</p>
@@ -209,20 +212,13 @@ export default function ClientApp({ initialProducts, settings }) {
       <h1 className="text-2xl font-semibold">Mood Flowers</h1>
       <div className="card p-3 space-y-2">
         <input className="field" placeholder="Пошук по назві" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="all">Категорія</option>
             <option value="flowers">Квіти</option>
             <option value="bouquets">Букети</option>
           </select>
-          <select className="field" value={color} onChange={(e) => setColor(e.target.value)}>
-            <option value="all">Колір</option>
-            <option value="red">Червоні</option>
-            <option value="white">Білі</option>
-            <option value="pink">Рожеві</option>
-            <option value="mix">Мікс</option>
-          </select>
-          <input className="field" type="number" min="100" step="50" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value || 5000))} />
+          <input className="field" type="number" min="100" step="50" value={maxPriceInput} onChange={(e) => setMaxPriceInput(e.target.value)} />
         </div>
       </div>
       <div className="space-y-2">
@@ -232,7 +228,7 @@ export default function ClientApp({ initialProducts, settings }) {
             <div className="p-2">
               <p className="font-semibold">{p.name}</p>
               <p className="text-sm text-neutral-600">{p.shortDesc}</p>
-              <p className="text-sm text-neutral-600">В наявності: {p.stockQty ?? 0} шт</p>
+              <p className="text-sm text-neutral-600">В наявності: {p.stockQty ?? 0}{normalizeCategory(p.category) === 'bouquets' ? '' : ' шт'}</p>
               <div className="mt-2 flex items-center justify-between">
                 <span className="font-semibold">{p.basePrice} грн</span>
                 <div className="flex gap-2">
@@ -251,12 +247,16 @@ export default function ClientApp({ initialProducts, settings }) {
 }
 
 function ProductDetails({ product, onBack, onAdd }) {
-  const [flowerQty, setFlowerQty] = useState(9);
+  const isBouquet = normalizeCategory(product.category) === 'bouquets';
+  const [flowerQtyInput, setFlowerQtyInput] = useState(isBouquet ? '1' : '9');
   const [cardText, setCardText] = useState('');
   const [extras, setExtras] = useState([]);
   const extrasMap = { card: 50, packaging: 120, ribbon: 40 };
   const gallery = Array.isArray(product.gallery) ? product.gallery : [];
   const stockQty = Number(product.stockQty ?? 0);
+  const parsedFlowerQty = Math.floor(Number(flowerQtyInput));
+  const flowerQty = isBouquet ? 1 : parsedFlowerQty;
+  const hasValidFlowerQty = isBouquet || (flowerQtyInput !== '' && Number.isFinite(parsedFlowerQty) && parsedFlowerQty >= 1);
 
   const finalPrice = Math.max(product.basePrice * flowerQty + extras.reduce((s, e) => s + (extrasMap[e] || 0), 0), 0);
 
@@ -264,14 +264,13 @@ function ProductDetails({ product, onBack, onAdd }) {
     setExtras((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
   }
 
-  function setTemplateQty(value) {
-    if (stockQty > 0) setFlowerQty(Math.min(value, stockQty));
-    else setFlowerQty(value);
-  }
-
   function addCurrentProduct() {
     if (stockQty <= 0) {
       alert('Товар тимчасово відсутній');
+      return;
+    }
+    if (!hasValidFlowerQty) {
+      alert('Вкажіть коректну кількість');
       return;
     }
     if (stockQty > 0 && flowerQty > stockQty) {
@@ -299,29 +298,21 @@ function ProductDetails({ product, onBack, onAdd }) {
         <div className="grid grid-cols-3 gap-2">{gallery.map((g, i) => <img key={i} src={g} alt="photo" className="h-20 w-full rounded-lg object-cover" />)}</div>
         <h2 className="text-xl font-semibold">{product.name}</h2>
         <p className="text-sm text-neutral-600">{product.fullDesc}</p>
-        <p className="text-sm text-neutral-600">В наявності: {stockQty} шт</p>
+        <p className="text-sm text-neutral-600">В наявності: {stockQty}{isBouquet ? '' : ' шт'}</p>
 
-        <p className="text-sm font-medium">Швидкий вибір кількості:</p>
-        <div className="grid grid-cols-3 gap-2">
-          <button className="btn-secondary" onClick={() => setTemplateQty(9)}>Невеликий (9)</button>
-          <button className="btn-secondary" onClick={() => setTemplateQty(15)}>Середній (15)</button>
-          <button className="btn-secondary" onClick={() => setTemplateQty(25)}>Великий (25)</button>
-        </div>
-
-        <label className="text-sm">
-          Кількість квітів
-          <input
-            className="field mt-1"
-            type="number"
-            min={1}
-            max={stockQty > 0 ? stockQty : undefined}
-            value={flowerQty}
-            onChange={(e) => {
-              const next = Math.max(Number(e.target.value || 1), 1);
-              setFlowerQty(stockQty > 0 ? Math.min(next, stockQty) : next);
-            }}
-          />
-        </label>
+        {!isBouquet && (
+          <label className="text-sm">
+            Кількість квітів
+            <input
+              className="field mt-1"
+              type="number"
+              min={1}
+              max={stockQty > 0 ? stockQty : undefined}
+              value={flowerQtyInput}
+              onChange={(e) => setFlowerQtyInput(e.target.value)}
+            />
+          </label>
+        )}
 
         <label><input type="checkbox" onChange={() => toggleExtra('packaging')} /> Упакування (+120 грн)</label>
         <label><input type="checkbox" onChange={() => toggleExtra('ribbon')} /> Стрічка (+40 грн)</label>
