@@ -29,6 +29,7 @@ export default function ClientApp({ initialProducts, settings }) {
     paymentMethod: 'liqpay'
   });
   const [statusText, setStatusText] = useState('');
+  const [goCheckoutState, setGoCheckoutState] = useState('idle');
 
   const filtered = useMemo(
     () =>
@@ -170,7 +171,20 @@ export default function ClientApp({ initialProducts, settings }) {
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary w-1/2" onClick={() => setStage('catalog')}>Назад</button>
-          <button className="btn-primary w-1/2" onClick={() => setStage('checkout')}>Оформити замовлення</button>
+          <button
+            className="btn-primary w-1/2"
+            onClick={async () => {
+              if (goCheckoutState !== 'idle') return;
+              setGoCheckoutState('loading');
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              setGoCheckoutState('success');
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              setGoCheckoutState('idle');
+              setStage('checkout');
+            }}
+          >
+            {goCheckoutState === 'loading' ? '⏳ Оформлюємо...' : goCheckoutState === 'success' ? '✓ Замовлення прийнято' : 'Оформити замовлення'}
+          </button>
         </div>
       </div>
     );
@@ -181,7 +195,7 @@ export default function ClientApp({ initialProducts, settings }) {
       <div className="app-shell space-y-3">
         <h1 className="text-2xl font-semibold">Оформлення замовлення</h1>
         <div className="card p-3 space-y-2">
-          <p className="text-sm font-semibold">Контактні дані</p>
+          <p className="text-sm font-semibold">Ваші дані</p>
           <input className="field" placeholder="Ім'я" value={checkout.name} onChange={(e) => setCheckout({ ...checkout, name: e.target.value })} />
           <input className="field" placeholder="Телефон" value={checkout.phone} onChange={(e) => setCheckout({ ...checkout, phone: e.target.value })} />
         </div>
@@ -205,14 +219,26 @@ export default function ClientApp({ initialProducts, settings }) {
           )}
         </div>
         <div className="card p-3 space-y-2">
-          <p className="text-sm font-semibold">Дата і час отримання</p>
+          <p className="text-sm font-semibold">Дата та час доставки</p>
           <input className="field min-w-0 px-2 py-1.5 text-sm" type="text" placeholder="Наприклад: завтра 18:30" value={checkout.deliveryDateTime} onChange={(e) => setCheckout({ ...checkout, deliveryDateTime: e.target.value })} />
         </div>
         <div className="card p-3 space-y-2">
           <p className="text-sm font-semibold">Оплата</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button className={checkout.paymentMethod === 'liqpay' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, paymentMethod: 'liqpay' })}>Оплатити карткою</button>
-            <button className={checkout.paymentMethod === 'cod' ? 'btn-primary' : 'btn-secondary'} onClick={() => setCheckout({ ...checkout, paymentMethod: 'cod' })}>Оплата при отриманні</button>
+          <div className="rounded-xl border border-line bg-white p-1">
+            <div className="grid grid-cols-2 gap-1">
+              <button
+                className={`rounded-lg px-2 py-1.5 text-sm font-medium ${checkout.paymentMethod === 'liqpay' ? 'bg-rose text-white' : 'text-ink'}`}
+                onClick={() => setCheckout({ ...checkout, paymentMethod: 'liqpay' })}
+              >
+                Карткою
+              </button>
+              <button
+                className={`rounded-lg px-2 py-1.5 text-sm font-medium ${checkout.paymentMethod === 'cod' ? 'bg-rose text-white' : 'text-ink'}`}
+                onClick={() => setCheckout({ ...checkout, paymentMethod: 'cod' })}
+              >
+                При отриманні
+              </button>
+            </div>
           </div>
         </div>
         <div className="card p-3">
