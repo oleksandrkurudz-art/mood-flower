@@ -9,7 +9,13 @@ body {
 
 .app-shell { @apply mx-auto max-w-md px-3 pb-8 pt-4; }
 .card { @apply rounded-2xl border border-line bg-white shadow-sm; }
-.btn { @apply rounded-xl px-4 py-3 font-medium; }
+.btn {
+  @apply rounded-xl px-4 py-3 font-medium;
+  transition: transform 180ms cubic-bezier(.2,.85,.35,1.2), box-shadow 180ms ease;
+}
+.btn:active {
+  transform: scale(0.96);
+}
 .btn-primary { @apply btn bg-rose text-white; }
 .btn-secondary { @apply btn border border-line bg-white; }
 .field { @apply w-full rounded-xl border border-line px-3 py-2 outline-none focus:ring-2 focus:ring-rose/30; }

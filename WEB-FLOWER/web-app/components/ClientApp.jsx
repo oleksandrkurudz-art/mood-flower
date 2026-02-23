@@ -53,8 +53,6 @@ export default function ClientApp({ initialProducts, settings }) {
     } else {
       setCart([...cart, { productId: product.id, name: product.name, image: product.image, qty: 1, options, price: options.price }]);
     }
-    setStage('catalog');
-    setSelected(null);
   }
 
   function updateQty(i, delta) {
@@ -283,6 +281,8 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
   const [flowerQtyInput, setFlowerQtyInput] = useState(isBouquet ? '1' : '9');
   const [cardText, setCardText] = useState('');
   const [extras, setExtras] = useState([]);
+  const [isAdded, setIsAdded] = useState(false);
+  const [addMessage, setAddMessage] = useState('');
   const extrasMap = { card: 50, packaging: 120, ribbon: 40 };
   const gallery = Array.isArray(product.gallery) ? product.gallery : [];
   const stockQty = Number(product.stockQty ?? 0);
@@ -329,6 +329,10 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
       cardText,
       price: finalPrice
     });
+    setIsAdded(true);
+    setAddMessage('Товар додано в кошик');
+    setTimeout(() => setIsAdded(false), 1000);
+    setTimeout(() => setAddMessage(''), 1600);
   }
 
   return (
@@ -373,8 +377,9 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
         )}
         <p className="text-3xl font-bold leading-none">{finalPrice} грн</p>
         <p className="text-sm text-neutral-600">Мінімальне замовлення — {MIN_ORDER_TOTAL} грн</p>
+        {addMessage && <p className="text-sm font-medium text-emerald-700">{addMessage}</p>}
         <div className="grid grid-cols-2 gap-2">
-          <button className="btn-primary" onClick={addCurrentProduct}>Додати в кошик</button>
+          <button className="btn-primary" onClick={addCurrentProduct}>{isAdded ? '✓ Додано' : 'Додати в кошик'}</button>
           <button className="btn-secondary" onClick={onGoCart}>Перейти в кошик</button>
         </div>
       </div>
