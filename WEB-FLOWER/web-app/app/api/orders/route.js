@@ -2,9 +2,18 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getOrderNo } from '@/lib/utils';
 
+function parseItems(itemsJson) {
+  try {
+    const parsed = JSON.parse(itemsJson || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
   const rows = await prisma.order.findMany({ orderBy: { createdAt: 'desc' } });
-  return NextResponse.json(rows);
+  return NextResponse.json(rows.map((o) => ({ ...o, items: parseItems(o.itemsJson) })));
 }
 
 export async function POST(request) {
