@@ -27,3 +27,8 @@ export async function PATCH(request, { params }) {
   });
   return NextResponse.json(updated);
 }
+
+export async function DELETE(_, { params }) {
+  await prisma.order.delete({ where: { id: Number(params.id) } });
+  return NextResponse.json({ ok: true });
+}

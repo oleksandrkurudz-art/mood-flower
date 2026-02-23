@@ -251,7 +251,10 @@ export default function ClientApp({ initialProducts, settings }) {
 
   return (
     <div className="app-shell space-y-3">
-      <h1 className="text-2xl font-semibold">Mood Flowers</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Mood Flowers</h1>
+        <button className="rounded-xl border border-line bg-white px-3 py-2 text-lg" onClick={() => setStage('cart')} aria-label="Кошик">🛒</button>
+      </div>
       <div className="card p-3 space-y-2">
         <input className="field" placeholder="Пошук по назві" value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="grid grid-cols-2 gap-2">
@@ -282,7 +285,6 @@ export default function ClientApp({ initialProducts, settings }) {
           </div>
         ))}
       </div>
-      <button className="btn-primary w-full" onClick={() => setStage('cart')}>Кошик ({cart.length})</button>
       <p className="text-sm text-neutral-600">Телефон магазину: {settings.shopPhone}</p>
     </div>
   );
@@ -349,7 +351,7 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
 
   return (
     <div className="app-shell space-y-3">
-      <button className="btn-secondary" onClick={onBack}>Назад</button>
+      <button className="text-sm font-medium text-neutral-700" onClick={onBack}>← Назад</button>
       <div className="card p-3 space-y-2">
         <img src={product.image} alt={product.name} className="h-56 w-full rounded-xl object-cover" />
         <div className="grid grid-cols-3 gap-2">{gallery.map((g, i) => <img key={i} src={g} alt="photo" className="h-20 w-full rounded-lg object-cover" />)}</div>
@@ -374,24 +376,24 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
         )}
 
         <div className="space-y-2">
-          <p className="text-sm font-medium">Додатково:</p>
+          <p className="text-sm font-medium">Додатково</p>
           {!isBouquet && (
             <>
-              <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('packaging')} onChange={() => toggleExtra('packaging')} /> Упакування +120 грн</label>
-              <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('ribbon')} onChange={() => toggleExtra('ribbon')} /> Стрічка +40 грн</label>
+              <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('packaging')} onChange={() => toggleExtra('packaging')} /> Упакування - 120 грн</label>
+              <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('ribbon')} onChange={() => toggleExtra('ribbon')} /> Стрічка - 40 грн</label>
             </>
           )}
-          <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('card')} onChange={() => toggleExtra('card')} /> Листівка +50 грн</label>
+          <label className="block text-sm"><input type="checkbox" checked={effectiveExtras.includes('card')} onChange={() => toggleExtra('card')} /> Листівка - 50 грн</label>
         </div>
 
         {effectiveExtras.includes('card') && (
           <textarea className="field" placeholder="Текст для листівки" value={cardText} onChange={(e) => setCardText(e.target.value)} />
         )}
         <p className="text-3xl font-bold leading-none">{finalPrice} грн</p>
-        <p className="text-sm text-neutral-600">Мінімальне замовлення — {MIN_ORDER_TOTAL} грн</p>
+        <p className="text-sm text-neutral-600">Мінімальне замовлення: {MIN_ORDER_TOTAL} грн</p>
         {addMessage && <p className="text-sm font-medium text-emerald-700">{addMessage}</p>}
         <div className="grid grid-cols-2 gap-2">
-          <button className="btn-primary" onClick={addCurrentProduct}>{isAdded ? '✓ Додано' : 'Додати в кошик'}</button>
+          <button className="btn-primary" onClick={addCurrentProduct}>{isAdded ? '✓ Додано' : '🛒 Додати в кошик'}</button>
           <button className="btn-secondary" onClick={onGoCart}>Перейти в кошик</button>
         </div>
       </div>

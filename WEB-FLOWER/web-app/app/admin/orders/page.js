@@ -56,6 +56,12 @@ export default function AdminOrdersPage() {
     load();
   }
 
+  async function removeOrder(id) {
+    await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+    if (expandedId === id) setExpandedId(null);
+    load();
+  }
+
   useEffect(() => {
     load();
   }, []);
@@ -130,12 +136,17 @@ export default function AdminOrdersPage() {
                       const extrasText = extras.length ? extras.map((e) => extrasLabels[e] || e).join(', ') : 'без додаткового';
                       return (
                         <div key={idx} className="rounded-lg border border-line p-2 text-sm space-y-1">
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-neutral-600">Кількість позицій: {item.qty ?? 1}</p>
-                          {item?.options?.flowerQty ? <p className="text-neutral-600">Кількість квітів: {item.options.flowerQty} шт</p> : null}
-                          <p className="text-neutral-600">Додатково: {extrasText}</p>
-                          {item?.options?.cardText ? <p className="text-neutral-600">Текст листівки: {item.options.cardText}</p> : null}
-                          <p className="font-semibold">{(Number(item.price || 0) * Number(item.qty || 1))} грн</p>
+                          <div className="flex items-start gap-2">
+                            {item?.image ? <img src={item.image} alt={item.name} className="h-12 w-12 rounded-lg object-cover" /> : null}
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-neutral-600">Кількість позицій: {item.qty ?? 1}</p>
+                              {item?.options?.flowerQty ? <p className="text-neutral-600">Кількість квітів: {item.options.flowerQty} шт</p> : null}
+                              <p className="text-neutral-600">Додатково: {extrasText}</p>
+                              {item?.options?.cardText ? <p className="text-neutral-600">Текст листівки: {item.options.cardText}</p> : null}
+                              <p className="font-semibold">{(Number(item.price || 0) * Number(item.qty || 1))} грн</p>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
@@ -149,6 +160,8 @@ export default function AdminOrdersPage() {
                     <div className="flex justify-between"><span>Доставка</span><span>{o.deliveryPrice} грн</span></div>
                     <div className="flex justify-between border-t border-line pt-1 font-semibold"><span>До оплати</span><span>{o.total} грн</span></div>
                   </div>
+
+                  <button className="btn-secondary w-full" onClick={() => removeOrder(o.id)}>Видалити замовлення</button>
                 </div>
               )}
             </div>
