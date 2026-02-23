@@ -29,7 +29,6 @@ export default function ClientApp({ initialProducts, settings }) {
     paymentMethod: 'liqpay'
   });
   const [statusText, setStatusText] = useState('');
-  const [goCheckoutState, setGoCheckoutState] = useState('idle');
 
   const filtered = useMemo(
     () =>
@@ -171,20 +170,7 @@ export default function ClientApp({ initialProducts, settings }) {
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary w-1/2" onClick={() => setStage('catalog')}>Назад</button>
-          <button
-            className="btn-primary w-1/2"
-            onClick={async () => {
-              if (goCheckoutState !== 'idle') return;
-              setGoCheckoutState('loading');
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              setGoCheckoutState('success');
-              await new Promise((resolve) => setTimeout(resolve, 500));
-              setGoCheckoutState('idle');
-              setStage('checkout');
-            }}
-          >
-            {goCheckoutState === 'loading' ? '⏳ Оформлюємо...' : goCheckoutState === 'success' ? '✓ Замовлення прийнято' : 'Оформити замовлення'}
-          </button>
+          <button className="btn-primary w-1/2" onClick={() => setStage('checkout')}>Оформити замовлення</button>
         </div>
       </div>
     );

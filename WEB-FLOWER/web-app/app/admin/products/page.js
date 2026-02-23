@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -43,6 +43,7 @@ function normalizeCategory(value) {
 export default function AdminProductsPage() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(empty);
+  const [showForm, setShowForm] = useState(false);
   const mainFileRef = useRef(null);
   const galleryFilesRef = useRef(null);
   const isBouquet = normalizeCategory(form.category) === 'bouquets';
@@ -126,10 +127,11 @@ export default function AdminProductsPage() {
         const err = await res.json();
         if (err?.error) message += `: ${err.error}`;
       } catch {}
-      alert(message + '. Спробуйте менше/легше фото або вставте URL.');
+      alert(message + '. Спробуйте менше/легше фото.');
       return;
     }
     resetForm();
+    setShowForm(false);
     load();
   }
 
@@ -139,8 +141,16 @@ export default function AdminProductsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
     });
-    if (form.id === id) resetForm();
+    if (form.id === id) {
+      resetForm();
+      setShowForm(false);
+    }
     load();
+  }
+
+  function startCreate() {
+    resetForm();
+    setShowForm(true);
   }
 
   function edit(item) {
@@ -154,6 +164,7 @@ export default function AdminProductsPage() {
     });
     if (mainFileRef.current) mainFileRef.current.value = '';
     if (galleryFilesRef.current) galleryFilesRef.current.value = '';
+    setShowForm(true);
   }
 
   useEffect(() => {
@@ -162,61 +173,76 @@ export default function AdminProductsPage() {
 
   return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Товари</h1>
-      <form className="card grid gap-2 p-3" onSubmit={save}>
-        <input className="field" placeholder="Назва" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <input className="field" placeholder="Короткий опис" value={form.shortDesc} onChange={(e) => setForm({ ...form, shortDesc: e.target.value })} />
-        <textarea className="field" placeholder="Повний опис" value={form.fullDesc} onChange={(e) => setForm({ ...form, fullDesc: e.target.value })} />
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Товари</h1>
+        <button className="btn-primary" type="button" onClick={startCreate}>+ Додати товар</button>
+      </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <input className="field" type="number" min="1" placeholder="Ціна за 1 квітку / одиницю" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: e.target.value })} />
-          {!isBouquet ? (
-            <input className="field" type="number" min="0" placeholder="В наявності (шт)" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: e.target.value })} />
-          ) : (
-            <div className="field flex items-center text-sm text-neutral-600">Для букетів кількість фіксована: 1</div>
-          )}
-        </div>
+      {showForm && (
+        <form className="card space-y-3 p-3" onSubmit={save}>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Основне</p>
+            <input className="field" placeholder="Назва" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <input className="field" placeholder="Короткий опис" value={form.shortDesc} onChange={(e) => setForm({ ...form, shortDesc: e.target.value })} />
+            <textarea className="field" placeholder="Повний опис" value={form.fullDesc} onChange={(e) => setForm({ ...form, fullDesc: e.target.value })} />
+          </div>
 
-        <select className="field" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, stockQty: e.target.value === 'bouquets' ? 1 : form.stockQty })}>
-          <option value="flowers">Квіти</option>
-          <option value="bouquets">Букети</option>
-        </select>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Ціна і склад</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input className="field" type="number" min="1" placeholder="Ціна" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: e.target.value })} />
+              {!isBouquet ? (
+                <input className="field" type="number" min="0" placeholder="Кількість" value={form.stockQty} onChange={(e) => setForm({ ...form, stockQty: e.target.value })} />
+              ) : (
+                <div className="field flex items-center text-sm text-neutral-600">Для букетів кількість: 1</div>
+              )}
+            </div>
+            <select className="field" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, stockQty: e.target.value === 'bouquets' ? 1 : form.stockQty })}>
+              <option value="flowers">Квіти</option>
+              <option value="bouquets">Букети</option>
+            </select>
+            <label className="text-sm"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Активний</label>
+          </div>
 
-        <input className="field" placeholder="Фото URL" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-        <label className="text-sm">
-          Завантажити головне фото з галереї
-          <input ref={mainFileRef} className="field mt-1" type="file" accept="image/*" onChange={onMainImageFileChange} />
-        </label>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Фото</p>
+            <p className="text-sm text-neutral-600">Головне фото</p>
+            <input ref={mainFileRef} className="field" type="file" accept="image/*" onChange={onMainImageFileChange} />
+            {form.image ? <img src={form.image} alt="preview" className="h-28 w-28 rounded-lg object-cover" /> : null}
+            <p className="text-sm text-neutral-600">Галерея</p>
+            <input ref={galleryFilesRef} className="field" type="file" accept="image/*" multiple onChange={onGalleryFilesChange} />
+            <textarea className="field" rows={3} placeholder="Додатково: 1 фото = 1 рядок (за потреби)" value={form.gallery} onChange={(e) => setForm({ ...form, gallery: e.target.value })} />
+          </div>
 
-        <textarea className="field" rows={4} placeholder="Галерея: 1 фото = 1 рядок" value={form.gallery} onChange={(e) => setForm({ ...form, gallery: e.target.value })} />
-        <label className="text-sm">
-          Додати фото в галерею (можна кілька)
-          <input ref={galleryFilesRef} className="field mt-1" type="file" accept="image/*" multiple onChange={onGalleryFilesChange} />
-        </label>
-
-        {form.image ? <img src={form.image} alt="preview" className="h-28 w-28 rounded-lg object-cover" /> : null}
-
-        <label><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Активний</label>
-
-        <div className="flex gap-2">
-          <button className="btn-primary" type="submit">{form.id ? 'Оновити товар' : 'Зберегти товар'}</button>
-          <button className="btn-secondary" type="button" onClick={resetForm}>Очистити форму</button>
-        </div>
-      </form>
+          <div className="space-y-1">
+            <button className="btn-primary w-full" type="submit">{form.id ? 'Зберегти зміни' : 'Зберегти товар'}</button>
+            <button className="text-sm text-neutral-500 underline" type="button" onClick={resetForm}>Очистити форму</button>
+          </div>
+        </form>
+      )}
 
       <div className="grid gap-2">
         {items.map((i) => (
           <div className="card p-3" key={i.id}>
-            <p className="font-semibold">{i.name}</p>
-            <p>{i.basePrice} грн</p>
-            <p>Наявність: {i.stockQty ?? 0} шт</p>
-            <p>Категорія: {normalizeCategory(i.category) === 'bouquets' ? 'Букети' : 'Квіти'}</p>
-            <div className="mt-2 flex gap-2">
+            <div className="flex items-start gap-3">
+              <img src={i.image} alt={i.name} className="h-16 w-16 rounded-lg object-cover" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="font-semibold">{i.name}</p>
+                <p className="text-sm">{i.basePrice} грн</p>
+                <p className={`inline-flex rounded-full px-2 py-0.5 text-xs ${i.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                  {i.isActive ? 'Активний ✅' : 'Неактивний'}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
               <button className="btn-secondary" onClick={() => edit(i)}>Редагувати</button>
               <button className="btn-secondary" onClick={() => remove(i.id)}>Видалити</button>
             </div>
           </div>
         ))}
+        {!items.length && (
+          <div className="card p-3 text-sm text-neutral-600">Товарів ще немає</div>
+        )}
       </div>
     </div>
   );
