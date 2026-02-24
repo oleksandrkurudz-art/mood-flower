@@ -63,6 +63,7 @@ export default function ClientApp({ initialProducts, settings }) {
   }
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const cartItemsCount = cart.reduce((s, i) => s + Number(i.qty || 0), 0);
   const orderType = checkout.orderType === 'pickup' ? 'pickup' : 'delivery';
   const deliveryPrice = orderType === 'delivery' ? Number(settings.deliveryPrice || 100) : 0;
   const total = subtotal + deliveryPrice;
@@ -253,7 +254,18 @@ export default function ClientApp({ initialProducts, settings }) {
     <div className="app-shell space-y-3">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Mood Flowers</h1>
-        <button className="rounded-xl border border-line bg-white px-3 py-2 text-lg" onClick={() => setStage('cart')} aria-label="Кошик">🛒</button>
+        <button className="relative rounded-xl border border-line bg-white px-3 py-2" onClick={() => setStage('cart')} aria-label="Кошик">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="20" r="1.5" />
+            <circle cx="18" cy="20" r="1.5" />
+            <path d="M2 3h2l2.2 10.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6.2" />
+          </svg>
+          {cartItemsCount > 0 && (
+            <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose px-1 text-xs font-semibold leading-none text-white">
+              {cartItemsCount}
+            </span>
+          )}
+        </button>
       </div>
       <div className="card p-3 space-y-2">
         <input className="field" placeholder="Пошук по назві" value={search} onChange={(e) => setSearch(e.target.value)} />
