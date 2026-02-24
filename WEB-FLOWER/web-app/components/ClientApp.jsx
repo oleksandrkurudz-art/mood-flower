@@ -8,6 +8,31 @@ function normalizeCategory(value) {
   return value === 'bouquet' || value === 'bouquets' ? 'bouquets' : 'flowers';
 }
 
+function CartIcon({ className = 'h-5 w-5' }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="20" r="1.5" />
+      <circle cx="18" cy="20" r="1.5" />
+      <path d="M2 3h2l2.2 10.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6.2" />
+    </svg>
+  );
+}
+
+function BrandIcon() {
+  return (
+    <svg viewBox="0 0 48 48" className="h-8 w-8" aria-hidden="true">
+      <circle cx="24" cy="24" r="22" fill="#fce7f3" />
+      <circle cx="24" cy="24" r="14" fill="#f9a8d4" opacity="0.35" />
+      <path d="M24 13c2.8 0 5 2.2 5 5s-2.2 5-5 5-5-2.2-5-5 2.2-5 5-5z" fill="#f472b6" />
+      <path d="M18.5 19c2 0 3.5 1.6 3.5 3.5S20.5 26 18.5 26 15 24.4 15 22.5 16.5 19 18.5 19z" fill="#f9a8d4" />
+      <path d="M29.5 19c2 0 3.5 1.6 3.5 3.5S31.5 26 29.5 26 26 24.4 26 22.5 27.5 19 29.5 19z" fill="#f9a8d4" />
+      <path d="M19 28c3.4 0 6 2.4 6 5.5S22.4 39 19 39s-6-2.4-6-5.5S15.6 28 19 28z" fill="#f9a8d4" />
+      <path d="M29 28c3.4 0 6 2.4 6 5.5S32.4 39 29 39s-6-2.4-6-5.5S25.6 28 29 28z" fill="#f9a8d4" />
+      <circle cx="24" cy="24" r="2.8" fill="#fb7185" />
+    </svg>
+  );
+}
+
 export default function ClientApp({ initialProducts, settings }) {
   const [products] = useState(initialProducts);
   const [search, setSearch] = useState('');
@@ -253,13 +278,12 @@ export default function ClientApp({ initialProducts, settings }) {
   return (
     <div className="app-shell space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Mood Flowers</h1>
+        <div className="flex items-center gap-2">
+          <BrandIcon />
+          <h1 className="text-2xl font-semibold">Mood Flowers</h1>
+        </div>
         <button className="relative rounded-xl border border-line bg-white px-3 py-2" onClick={() => setStage('cart')} aria-label="Кошик">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="9" cy="20" r="1.5" />
-            <circle cx="18" cy="20" r="1.5" />
-            <path d="M2 3h2l2.2 10.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6.2" />
-          </svg>
+          <CartIcon />
           {cartItemsCount > 0 && (
             <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose px-1 text-xs font-semibold leading-none text-white">
               {cartItemsCount}
@@ -311,6 +335,7 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
   const [addMessage, setAddMessage] = useState('');
   const extrasMap = { card: 50, packaging: 120, ribbon: 40 };
   const gallery = Array.isArray(product.gallery) ? product.gallery : [];
+  const [activeImage, setActiveImage] = useState(product.image);
   const stockQty = Number(product.stockQty ?? 0);
   const parsedFlowerQty = Math.floor(Number(flowerQtyInput));
   const flowerQty = isBouquet ? 1 : parsedFlowerQty;
@@ -365,8 +390,14 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
     <div className="app-shell space-y-3">
       <button className="text-sm font-medium text-neutral-700" onClick={onBack}>← Назад</button>
       <div className="card p-3 space-y-2">
-        <img src={product.image} alt={product.name} className="h-56 w-full rounded-xl object-cover" />
-        <div className="grid grid-cols-3 gap-2">{gallery.map((g, i) => <img key={i} src={g} alt="photo" className="h-20 w-full rounded-lg object-cover" />)}</div>
+        <img src={activeImage} alt={product.name} className="h-56 w-full rounded-xl object-cover" />
+        <div className="grid grid-cols-3 gap-2">
+          {[product.image, ...gallery].map((g, i) => (
+            <button key={i} className={`overflow-hidden rounded-lg border ${activeImage === g ? 'border-rose' : 'border-line'}`} onClick={() => setActiveImage(g)}>
+              <img src={g} alt="photo" className="h-20 w-full object-cover" />
+            </button>
+          ))}
+        </div>
         <h2 className="text-xl font-semibold">{product.name}</h2>
         <p className="text-sm text-neutral-600">{product.fullDesc}</p>
         <div className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
@@ -405,7 +436,9 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
         <p className="text-sm text-neutral-600">Мінімальне замовлення: {MIN_ORDER_TOTAL} грн</p>
         {addMessage && <p className="text-sm font-medium text-emerald-700">{addMessage}</p>}
         <div className="grid grid-cols-2 gap-2">
-          <button className="btn-primary" onClick={addCurrentProduct}>{isAdded ? '✓ Додано' : '🛒 Додати в кошик'}</button>
+          <button className="btn-primary inline-flex items-center justify-center gap-2" onClick={addCurrentProduct}>
+            {isAdded ? '✓ Додано' : (<><CartIcon className="h-4 w-4" /> Додати в кошик</>)}
+          </button>
           <button className="btn-secondary" onClick={onGoCart}>Перейти в кошик</button>
         </div>
       </div>
