@@ -390,7 +390,7 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
     <div className="app-shell space-y-3">
       <button className="text-sm font-medium text-neutral-700" onClick={onBack}>← Назад</button>
       <div className="card p-3 space-y-2">
-        <img src={activeImage} alt={product.name} className="h-56 w-full rounded-xl object-cover" />
+        <img src={activeImage} alt={product.name} className="aspect-square w-full rounded-xl object-cover" />
         <div className="grid grid-cols-3 gap-2">
           {[product.image, ...gallery].map((g, i) => (
             <button key={i} className={`overflow-hidden rounded-lg border ${activeImage === g ? 'border-rose' : 'border-line'}`} onClick={() => setActiveImage(g)}>
@@ -437,7 +437,7 @@ function ProductDetails({ product, onBack, onAdd, onGoCart }) {
         {addMessage && <p className="text-sm font-medium text-emerald-700">{addMessage}</p>}
         <div className="grid grid-cols-2 gap-2">
           <button className="btn-primary inline-flex items-center justify-center gap-2" onClick={addCurrentProduct}>
-            {isAdded ? '✓ Додано' : (<><CartIcon className="h-4 w-4" /> Додати в кошик</>)}
+            {isAdded ? '✓ Додано' : (<><CartIcon className="h-4 w-4" /> В кошик</>)}
           </button>
           <button className="btn-secondary" onClick={onGoCart}>Перейти в кошик</button>
         </div>
