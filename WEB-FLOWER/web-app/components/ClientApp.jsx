@@ -54,6 +54,7 @@ export default function ClientApp({ initialProducts, settings }) {
     paymentMethod: 'liqpay'
   });
   const [statusText, setStatusText] = useState('');
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   const filtered = useMemo(
     () =>
@@ -94,57 +95,63 @@ export default function ClientApp({ initialProducts, settings }) {
   const total = subtotal + deliveryPrice;
 
   async function createOrder() {
+    if (isSubmittingOrder) return;
     if (!cart.length) return alert('Кошик порожній');
     if (!checkout.name || !checkout.phone || !checkout.deliveryDateTime) return alert("Заповніть обов'язкові поля");
     if (orderType === 'delivery' && (!checkout.city || !checkout.street || !checkout.building)) return alert('Вкажіть адресу доставки');
 
-    const payload = {
-      ...checkout,
-      orderType,
-      deliveryDate: checkout.deliveryDateTime,
-      deliveryTime: checkout.deliveryDateTime,
-      items: cart,
-      subtotal,
-      deliveryPrice,
-      total,
-      telegramUserId: window?.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || ''
-    };
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || 'Помилка створення замовлення');
-
-    await fetch('/api/telegram/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data.order)
-    });
-
-    if (checkout.paymentMethod === 'liqpay') {
-      const payRes = await fetch('/api/liqpay/checkout', {
+    setIsSubmittingOrder(true);
+    try {
+      const payload = {
+        ...checkout,
+        orderType,
+        deliveryDate: checkout.deliveryDateTime,
+        deliveryTime: checkout.deliveryDateTime,
+        items: cart,
+        subtotal,
+        deliveryPrice,
+        total,
+        telegramUserId: window?.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || ''
+      };
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNo: data.order.orderNo, total: data.order.total })
+        body: JSON.stringify(payload)
       });
-      const pay = await payRes.json();
-      if (!payRes.ok) return alert(pay.error || 'Помилка LiqPay');
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || 'Помилка створення замовлення');
 
-      setStatusText('Переходимо до оплати LiqPay...');
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = 'https://www.liqpay.ua/api/3/checkout';
-      form.innerHTML = `<input name="data" value="${pay.data}" /><input name="signature" value="${pay.signature}" />`;
-      document.body.appendChild(form);
-      form.submit();
-      return;
+      await fetch('/api/telegram/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data.order)
+      });
+
+      if (checkout.paymentMethod === 'liqpay') {
+        const payRes = await fetch('/api/liqpay/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderNo: data.order.orderNo, total: data.order.total })
+        });
+        const pay = await payRes.json();
+        if (!payRes.ok) return alert(pay.error || 'Помилка LiqPay');
+
+        setStatusText('Переходимо до оплати LiqPay...');
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'https://www.liqpay.ua/api/3/checkout';
+        form.innerHTML = `<input name="data" value="${pay.data}" /><input name="signature" value="${pay.signature}" />`;
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
+      setStatusText(`Замовлення прийнято. Номер: ${data.order.orderNo}. Статус: Новий`);
+      setCart([]);
+      setStage('done');
+    } finally {
+      setIsSubmittingOrder(false);
     }
-
-    setStatusText(`Замовлення прийнято. Номер: ${data.order.orderNo}. Статус: Новий`);
-    setCart([]);
-    setStage('done');
   }
 
   if (selected) {
@@ -231,7 +238,7 @@ export default function ClientApp({ initialProducts, settings }) {
           )}
         </div>
         <div className="card p-3 space-y-2">
-          <p className="text-sm font-semibold">Дата та час доставки</p>
+          <p className="text-sm font-semibold">Дата та час доставки/отримання</p>
           <input className="field min-w-0 px-2 py-1.5 text-sm" type="text" placeholder="Наприклад: завтра 18:30" value={checkout.deliveryDateTime} onChange={(e) => setCheckout({ ...checkout, deliveryDateTime: e.target.value })} />
         </div>
         <div className="card p-3 space-y-2">
@@ -259,7 +266,9 @@ export default function ClientApp({ initialProducts, settings }) {
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary w-1/2" onClick={() => setStage('cart')}>Назад</button>
-          <button className="btn-primary w-1/2" onClick={createOrder}>Підтвердити замовлення</button>
+          <button className="btn-primary w-1/2 disabled:opacity-60 disabled:cursor-not-allowed" disabled={isSubmittingOrder} onClick={createOrder}>
+            {isSubmittingOrder ? 'Підтвердження...' : 'Підтвердити замовлення'}
+          </button>
         </div>
       </div>
     );
