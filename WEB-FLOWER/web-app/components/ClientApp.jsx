@@ -289,7 +289,7 @@ export default function ClientApp({ initialProducts, settings }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BrandIcon />
-          <h1 className="text-2xl font-semibold">Mood Flowers</h1>
+          <h1 className="text-2xl font-semibold">Ваша назва</h1>
         </div>
         <button className="relative rounded-xl border border-line bg-white px-3 py-2" onClick={() => setStage('cart')} aria-label="Кошик">
           <CartIcon />
